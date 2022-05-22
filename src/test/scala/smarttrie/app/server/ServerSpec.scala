@@ -2,7 +2,6 @@ package smarttrie.app.server
 
 import bftsmart.tom.MessageContext
 import java.nio.file.{Files, Path}
-import scala.util.Random
 import smarttrie.atoms._
 import smarttrie.io._
 import smarttrie.lang._
@@ -34,7 +33,7 @@ class ServerSpec extends Spec {
     def bValue = Value("bax".toUTF8Array)
 
     s"Server($name)" should "add a key" in {
-      val server = new Server(newState, dataDir, 1_000)
+      val server = new Server(newState)
       run(server, Set(aKey, aValue)) shouldBe Null
       run(server, Set(aKey, bValue)) shouldBe Data(aValue) // returns old value
     }
@@ -43,32 +42,16 @@ class ServerSpec extends Spec {
       val state = newState
       state.put(aKey, aValue)
 
-      val server = new Server(state, dataDir, 1_000)
+      val server = new Server(state)
       run(server, Get(aKey)) shouldBe Data(aValue)
     }
 
     it should "remove a key" in {
       val state = newState
       state.put(aKey, aValue)
-      val server = new Server(state, dataDir, 1_000)
+      val server = new Server(state)
       run(server, Remove(aKey)) shouldBe Data(aValue) // return deleted value
       run(server, Remove(aKey)) shouldBe Null
-    }
-
-    it should "be durable" in {
-      val prevState = newState
-      val server = new Server(prevState, dataDir, 100)
-
-      for (cid <- 0 until 1_000) {
-        val randKey = Key(Random.nextBytes(16))
-        val randValue = Value(Random.nextBytes(32))
-        run(server, Set(randKey, randValue), cid)
-      }
-
-      server.shutdown()
-      val nextState = newState
-      new Server(nextState, dataDir, 100)
-      nextState should equal(prevState)
     }
 
     def run(server: Server, cmd: Command, cid: Int = 0): Reply = {
@@ -93,7 +76,7 @@ class ServerSpec extends Spec {
       )
 
       val batch = Array(Codec.encode(cmd))
-      val response = server.executeBatch(batch, Array(ctx))
+      val response = server.appExecuteBatch(batch, Array(ctx), false)
       Codec.decode(response(0)).as[Reply]
     }
   }

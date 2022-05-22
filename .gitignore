@@ -1,4 +1,6 @@
 .idea/
+.vscode/
+.metals/
 target/
 dist/**
 logs/**

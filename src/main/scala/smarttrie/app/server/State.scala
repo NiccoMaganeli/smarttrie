@@ -5,6 +5,12 @@ import java.util.{TreeMap => JTreeMap}
 import scala.collection.concurrent.TrieMap
 import scala.jdk.CollectionConverters._
 import smarttrie.atoms._
+import java.io.{
+  ByteArrayInputStream,
+  ByteArrayOutputStream,
+  ObjectInputStream,
+  ObjectOutputStream
+}
 
 abstract class State(val allowConcurrentSnapshot: Boolean) {
   def get(key: Key): Option[Value]
@@ -12,6 +18,8 @@ abstract class State(val allowConcurrentSnapshot: Boolean) {
   def put(key: Key, value: Value): Option[Value]
   def foreach(fn: (Key, Value) => Any): Unit
   def clear(): Unit
+  def getSnapshot(): Array[Byte]
+  def installSnapshot(appState: Array[Byte]): Unit
 }
 
 object State {
@@ -31,7 +39,7 @@ object State {
 
   private final class TreeMapState extends State(allowConcurrentSnapshot = false) {
 
-    private val state =
+    private var state =
       new JTreeMap[Key, Value]()
 
     def get(key: Key): Option[Value] =
@@ -54,6 +62,20 @@ object State {
     def clear(): Unit =
       state.clear()
 
+    def getSnapshot(): Array[Byte] = {
+      val stream = new ByteArrayOutputStream()
+      val oos = new ObjectOutputStream(stream)
+      oos.writeObject(state)
+      oos.close()
+      stream.toByteArray()
+    }
+
+    def installSnapshot(newState: Array[Byte]): Unit = {
+      val stream = new ObjectInputStream(new ByteArrayInputStream(newState))
+      state = stream.readObject.asInstanceOf[JTreeMap[Key, Value]]
+      stream.close()
+    }
+
     override def hashCode(): Int = 13 * state.hashCode()
 
     override def equals(obj: Any): Boolean =
@@ -68,7 +90,7 @@ object State {
 
   private final class HashMapState extends State(allowConcurrentSnapshot = false) {
 
-    private val state =
+    private var state =
       new ConcurrentHashMap[Key, Value]()
 
     def get(key: Key): Option[Value] =
@@ -88,6 +110,20 @@ object State {
       }
     }
 
+    def getSnapshot(): Array[Byte] = {
+      val stream = new ByteArrayOutputStream()
+      val oos = new ObjectOutputStream(stream)
+      oos.writeObject(state)
+      oos.close()
+      stream.toByteArray()
+    }
+
+    def installSnapshot(newState: Array[Byte]): Unit = {
+      val stream = new ObjectInputStream(new ByteArrayInputStream(newState))
+      state = stream.readObject.asInstanceOf[ConcurrentHashMap[Key, Value]]
+      stream.close()
+    }
+
     def clear(): Unit =
       state.clear()
 
@@ -105,7 +141,7 @@ object State {
 
   private final class TrieMapState extends State(allowConcurrentSnapshot = true) {
 
-    private val state =
+    private var state =
       TrieMap.empty[Key, Value]
 
     def get(key: Key): Option[Value] =
@@ -127,6 +163,20 @@ object State {
 
     def clear(): Unit =
       state.clear()
+
+    def getSnapshot(): Array[Byte] = {
+      val stream = new ByteArrayOutputStream()
+      val oos = new ObjectOutputStream(stream)
+      oos.writeObject(state.readOnlySnapshot())
+      oos.close()
+      stream.toByteArray()
+    }
+
+    def installSnapshot(newState: Array[Byte]): Unit = {
+      val stream = new ObjectInputStream(new ByteArrayInputStream(newState))
+      state = stream.readObject.asInstanceOf[TrieMap[Key, Value]]
+      stream.close()
+    }
 
     override def hashCode(): Int = 31 * state.hashCode()
 
