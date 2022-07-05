@@ -10,3 +10,4 @@ experiments/venv
 experiments/tmp
 experiments/analysis/*.nb.html
 experiments/analysis/*.pdf
+experiments/results

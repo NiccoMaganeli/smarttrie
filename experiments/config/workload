@@ -1,7 +1,7 @@
 workload=site.ycsb.workloads.CoreWorkload
-recordcount=1500000
+recordcount=5000000
 operationcount=100000000
-fieldlength=4096
+fieldlength=100
 updateproportion=1
 readproportion=0
 scanproportion=0

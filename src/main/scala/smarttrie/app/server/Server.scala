@@ -1,6 +1,7 @@
 package smarttrie.app.server
 
 import bftsmart.statemanagement.strategy.collaborative.CollaborativeStateManager
+// import bftsmart.statemanagement.strategy.StandardStateManager
 import bftsmart.statemanagement.StateManager
 import bftsmart.tom.server.defaultservices.DefaultRecoverable
 import bftsmart.tom.{MessageContext, ServiceReplica}
